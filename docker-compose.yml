@@ -1,0 +1,26 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: dalabozor_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dalabozor
+      POSTGRES_PASSWORD: dalabozor
+      POSTGRES_DB: dalabozor
+    ports:
+      - "5440:5432"   # host 5432 band bo'lishi mumkin — 5433 ishlatamiz
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dalabozor"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Ixtiyoriy: prod'da FSM/scheduler uchun Redis kerak bo'lsa
+  # redis:
+  #   image: redis:7-alpine
+  #   ports: ["6379:6379"]
+
+volumes:
+  pgdata:
