@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,6 +21,17 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+asyncpg://dalabozor:dalabozor@localhost:5432/dalabozor"
     )
+
+    # Railway kabi provayderlar DATABASE_URL'ni `postgresql://` ko'rinishida
+    # beradi, lekin kod asyncpg talab qiladi — avtomatik moslashtiramiz.
+    @field_validator("database_url")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        if value.startswith("postgres://"):
+            value = value.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif value.startswith("postgresql://"):
+            value = value.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return value
 
     # JWT
     jwt_secret: str = "CHANGE_ME_super_secret_key_min_32_chars_long"
