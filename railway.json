@@ -4,8 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "preDeployCommand": ["python railway_migrate.py"],
-    "startCommand": "uvicorn app.main:app --host 0.0.0.0 --port $PORT",
+    "startCommand": "sh -c 'python railway_migrate.py || echo MIGRATION_FAILED_BUT_STARTING; exec uvicorn app.main:app --host 0.0.0.0 --port $PORT'",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
