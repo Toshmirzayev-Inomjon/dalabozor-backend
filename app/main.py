@@ -5,9 +5,11 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.core.db import engine
 
 logging.basicConfig(level=logging.INFO)
 
@@ -64,4 +66,15 @@ async def add_security_headers(request: Request, call_next):
 
 @app.get("/health", tags=["service"])
 async def health():
-    return {"status": "ok", "app": settings.app_name, "env": settings.env}
+    db_status = "ok"
+    try:
+        async with engine.connect() as conn:
+            await conn.execute(text("SELECT 1"))
+    except Exception:  # noqa: BLE001
+        db_status = "error"
+    return {
+        "status": "ok",
+        "app": settings.app_name,
+        "env": settings.env,
+        "db": db_status,
+    }
