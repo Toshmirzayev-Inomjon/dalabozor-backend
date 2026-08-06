@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     bot_token: str = ""
 
     # AI yordamchi — kalitlar faqat backend `.env` faylida saqlanadi
+    # ai_provider: "groq" (tashqi OpenAI-API) yoki "neura" (shaxsiy Neura AI API).
+    # Neura rejimida GROQ_API_KEY shart emas, GROQ_BASE_URL Neura hostiga ko'rsatiladi.
+    ai_provider: str = "groq"
     groq_api_key: str = ""
     groq_base_url: str = "https://api.groq.com/openai/v1"
     groq_model: str = "llama-3.3-70b-versatile"

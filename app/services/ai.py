@@ -46,6 +46,8 @@ class AIService:
         self._provided_client = client
 
     def status(self) -> dict[str, bool]:
+        if self.config.ai_provider == "neura":
+            return {"chat_available": True}
         return {"chat_available": bool(self.config.groq_api_key.strip())}
 
     @asynccontextmanager
@@ -74,6 +76,14 @@ class AIService:
         active_role: str | None,
         active_section: str | None = None,
     ) -> ChatOut:
+        if self.config.ai_provider == "neura":
+            return await self._chat_neura(
+                payload,
+                user_roles=user_roles,
+                active_role=active_role,
+                active_section=active_section,
+            )
+
         api_key = self.config.groq_api_key.strip()
         if not api_key:
             raise AIServiceError("AI suhbat xizmati hozircha sozlanmagan", 503)
@@ -135,6 +145,44 @@ class AIService:
         return self._parse_chat_response(
             content,
             user_roles=normalized_roles,
+            active_role=active_role,
+        )
+
+    async def _chat_neura(
+        self,
+        payload: ChatIn,
+        *,
+        user_roles: list[str],
+        active_role: str | None,
+        active_section: str | None,
+    ) -> ChatOut:
+        """Shaxsiy Neura AI API'si bilan suhbat (OpenAI kontrakti emas)."""
+        url = self.config.groq_base_url.rstrip("/") + "/api/chat"
+
+        async with self._client() as client:
+            try:
+                response = await client.post(
+                    url,
+                    headers={"Content-Type": "application/json"},
+                    json={"message": payload.message},
+                )
+            except httpx.TimeoutException as exc:
+                raise AIServiceError("AI xizmati vaqtida javob bermadi", 504) from exc
+            except httpx.RequestError as exc:
+                raise AIServiceError("AI xizmatiga ulanib bo'lmadi", 502) from exc
+
+        self._ensure_success(response, "Neura AI")
+        try:
+            body = response.json()
+            reply = body["reply"]
+        except (ValueError, KeyError, TypeError) as exc:
+            raise AIServiceError("AI xizmatidan noto'g'ri javob qaytdi", 502) from exc
+        if not isinstance(reply, str) or not reply.strip():
+            raise AIServiceError("AI xizmatidan bo'sh javob qaytdi", 502)
+
+        return self._parse_chat_response(
+            reply,
+            user_roles={role for role in user_roles if role in ALL_ROLES},
             active_role=active_role,
         )
 

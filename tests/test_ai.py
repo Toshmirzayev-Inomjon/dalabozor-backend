@@ -148,6 +148,58 @@ async def test_chat_empty_code_fence_uses_safe_fallback():
     assert "qayta yozing" in result.reply
 
 
+async def test_chat_neura_provider_calls_neura_api_and_returns_reply():
+    async def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url == "https://neuraai.up.railway.app/api/chat"
+        assert "Authorization" not in request.headers
+        body = json.loads(await request.aread())
+        assert body == {"message": "Salom"}
+        return httpx.Response(
+            200,
+            json={
+                "reply": "Salom, yordam bera olaman.",
+                "source": "kb",
+                "conversation_id": 1,
+            },
+        )
+
+    settings = ai_settings(
+        ai_provider="neura",
+        groq_base_url="https://neuraai.up.railway.app",
+        groq_api_key="",
+    )
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await AIService(settings, client).chat(
+            ChatIn(message="Salom"),
+            user_roles=["farmer"],
+            active_role="farmer",
+        )
+
+    assert result.reply == "Salom, yordam bera olaman."
+    assert result.action is None
+
+
+async def test_chat_neura_provider_plain_text_reply_ok():
+    async def handler(_request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"reply": "Javob: katalog bo'limida topasiz."})
+
+    settings = ai_settings(ai_provider="neura", groq_api_key="")
+    async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+        result = await AIService(settings, client).chat(
+            ChatIn(message="Savat qayerda?"),
+            user_roles=["restaurant"],
+            active_role="restaurant",
+        )
+
+    assert result.reply == "Javob: katalog bo'limida topasiz."
+    assert result.action is None
+
+
+async def test_ai_status_neura_provider_available_without_key():
+    settings = ai_settings(ai_provider="neura", groq_api_key="")
+    assert AIService(settings).status() == {"chat_available": True}
+
+
 class FakeAIService:
     def status(self):
         return {"chat_available": True}
