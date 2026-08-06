@@ -37,7 +37,9 @@ class AuthService:
 
     # --- OTP ---
     def _generate_code(self) -> str:
-        if settings.env == "dev" and settings.otp_dev_code:
+        # Hibni SMS provayder (Eskiz) ulanmagan bo'lsa, doimiy test kodi ishlatiladi
+        # — frontend shu kodni ko'rsatadi, hech qayerga SMS yuborilmaydi.
+        if settings.sms_provider != "eskiz" and settings.otp_dev_code:
             return settings.otp_dev_code
         upper = 10**settings.otp_length
         return str(secrets.randbelow(upper)).zfill(settings.otp_length)

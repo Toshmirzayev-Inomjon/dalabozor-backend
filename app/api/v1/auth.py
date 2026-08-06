@@ -70,7 +70,9 @@ async def request_otp(payload: RequestOtpIn, db: AsyncSession = Depends(get_db))
             detail=str(e),
             headers={"Retry-After": str(int(max(e.retry_after, 1)))},
         )
-    dev_code = code if settings.env == "dev" else None
+    dev_code = (
+        code if settings.env == "dev" or settings.sms_provider != "eskiz" else None
+    )
     return RequestOtpOut(sent=True, dev_code=dev_code)
 
 
